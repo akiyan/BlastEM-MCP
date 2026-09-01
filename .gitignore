@@ -8,6 +8,10 @@ coverage/
 *.test
 *.out
 
+# Writable checkout of the akiyan/blastem fork. The pinned submodule under
+# third_party remains the reproducible upstream baseline.
+/blastem-fork/
+
 # Local test ROMs must never be committed.
 /roms/*
 !/roms/.gitkeep
