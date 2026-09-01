@@ -1,6 +1,6 @@
 # BlastEM MCP implementation plan
 
-Status: approved project baseline (2026-09-01)
+Status: initial project baseline (2026-09-01)
 
 ## 1. Outcome
 
@@ -227,4 +227,3 @@ repeated test runs, with documented exceptions for nondeterministic peripherals.
 - Every v0.1 tool has a backend and observable acceptance criterion.
 - Known gaps—especially frame advance, save/load, and missing socket replies—are
   explicit rather than hidden inside implementation tasks.
-
