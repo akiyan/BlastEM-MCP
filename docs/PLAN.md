@@ -70,7 +70,7 @@ Codex / Claude / VS Code
           |
           | MCP over stdio
           v
-  blastem-mcp (TypeScript)
+     blastem-mcp (Go)
     |       |          |
     |       |          +-- session/artifact manager
     |       +------------- GDB Remote client (localhost TCP)
@@ -87,12 +87,26 @@ is retained long enough to report diagnostics.
 
 ### Technology baseline
 
-- TypeScript on Node.js 22 LTS or newer.
-- Official MCP TypeScript SDK v2, using local stdio transport.
-- Zod schemas for all tool arguments and structured results.
-- Vitest for unit/protocol tests.
+- Go 1.27 or newer, producing a single `blastem-mcp` executable.
+- Official MCP Go SDK (`github.com/modelcontextprotocol/go-sdk/mcp`) using its
+  local `StdioTransport`.
+- Typed Go structs with JSON/JSON-Schema tags for tool arguments and structured
+  results.
+- Standard `testing` package, table-driven tests, and `go test -race` for the
+  session and protocol packages.
 - Direct, minimal GDB Remote Serial Protocol client rather than shelling out to
   interactive GDB. Restrict the implementation to packets required by the MVP.
+
+Go packages should follow these boundaries:
+
+```text
+cmd/blastem-mcp/       process entry point; MCP stdio wiring only
+internal/mcpserver/    tool registration, schemas, and error mapping
+internal/session/      BlastEM child lifecycle and runtime directory
+internal/control/      Unix control-socket client
+internal/gdbrsp/       minimal GDB Remote Serial Protocol client
+internal/artifact/     screenshot and KITVDMP1 validation
+```
 
 ## 4. Backend contracts and constraints
 
@@ -160,7 +174,7 @@ next work is represented by actionable GitHub issues.
 
 ### M1 — v0.1 control and debug MVP
 
-1. TypeScript MCP stdio server and schemas.
+1. Go MCP stdio server and typed tool schemas.
 2. Session/runtime directory manager.
 3. Control-socket client with input cleanup and artifact deadlines.
 4. Minimal GDB Remote client.

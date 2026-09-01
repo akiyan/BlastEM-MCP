@@ -39,14 +39,16 @@ not currently expose them through its control socket.
 ```text
 docs/                  architecture, milestones, and decisions
 vendor/blastem/        pinned upstream fork (Git submodule)
-src/                   MCP server (planned)
-test/                  protocol and integration tests (planned)
+cmd/blastem-mcp/       Go MCP server entry point (planned)
+internal/              session and protocol packages (planned)
+testdata/              open integration fixtures (planned)
 ```
 
 ## Documentation
 
 - [Implementation plan](docs/PLAN.md)
 - [ADR 0001: use the ulalume BlastEM fork](docs/adr/0001-use-ulalume-blastem.md)
+- [ADR 0002: implement the MCP server in Go](docs/adr/0002-use-go-for-the-mcp-server.md)
 
 ## ROM policy
 
@@ -59,4 +61,3 @@ The MCP wrapper and original documentation in this repository are licensed
 under the MIT License. The BlastEM submodule is a separate GPL-3.0 project and
 retains its own license and copyright notices. Any derivative patches to
 BlastEM must follow its applicable license.
-

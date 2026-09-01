@@ -1,8 +1,8 @@
-node_modules/
-dist/
 coverage/
 *.log
 .env
 .DS_Store
 .blastem-mcp/
-
+/blastem-mcp
+*.test
+*.out

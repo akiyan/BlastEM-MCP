@@ -10,6 +10,5 @@ Before opening a change:
 4. Add tests for protocol parsing, timeouts, cleanup, and error paths.
 5. Never write diagnostic output to MCP stdio stdout; use stderr.
 
-Bug reports should include the host OS, Node version, BlastEM commit, build
+Bug reports should include the host OS, Go version, BlastEM commit, build
 options/CPU core, MCP host, reproduction steps, and sanitized logs.
-

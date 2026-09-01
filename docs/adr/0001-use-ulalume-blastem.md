@@ -25,7 +25,7 @@ separate adapters:
 - GDB Remote Serial Protocol for CPU registers, memory, breakpoints, step, and
   continue.
 
-The MCP server will be a separate TypeScript process. It will not be linked into
+The MCP server will be a separate Go process. It will not be linked into
 BlastEM and will not place JSON-RPC/MCP logic in the emulator.
 
 ## Consequences
@@ -51,4 +51,3 @@ Reconsider this backend if the fork stops building on supported Linux systems,
 cannot provide deterministic stepping without invasive changes, diverges too
 far from upstream BlastEM, or another backend satisfies M1 and M2 with less
 maintenance cost.
-
