@@ -42,6 +42,7 @@ func TestAdvertisesImplementedTools(t *testing.T) {
 		"breakpoint_set", "button_down", "button_up", "cpu_continue",
 		"cpu_registers", "cpu_step", "memory_read", "memory_write",
 		"release_all_buttons", "screenshot", "vdp_snapshot",
+		"vram_tiles",
 	}
 	if len(got) != len(want) {
 		t.Fatalf("tools = %v, want %v", got, want)

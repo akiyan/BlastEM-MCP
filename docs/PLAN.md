@@ -23,14 +23,15 @@ Use the selected BlastEM fork without changing its wire protocols.
 |---|---|---|
 | Session | `blastem_start`, `blastem_status`, `blastem_stop` | managed child process |
 | Input | `button_down`, `button_up`, `release_all_buttons` | Unix control socket |
-| Video/VDP | `screenshot`, `vdp_snapshot` | Unix control socket + artifact wait |
+| Video/VDP | `screenshot`, `vdp_snapshot`, `vram_tiles` | Unix control socket + artifact decoding |
 | CPU | `cpu_registers`, `cpu_step`, `cpu_continue` | GDB Remote |
 | Memory | `memory_read`, `memory_write` | GDB Remote |
 | Breakpoints | `breakpoint_set`, `breakpoint_remove` | GDB Remote |
 
 `screenshot` returns an MCP image plus metadata. `vdp_snapshot` returns parsed
 metadata and an artifact/resource reference; raw binary data is not dumped into
-model context by default.
+model context by default. `vram_tiles` decodes the snapshot into a PNG containing
+all 2048 8x8 tiles rendered with each of the four live CRAM palettes.
 
 ### v0.2: deterministic automation
 

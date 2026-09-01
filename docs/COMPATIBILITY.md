@@ -23,6 +23,8 @@ Drive ROMs. The ROM binaries remain local and are excluded by `.gitignore`.
 - `pad 1 down a` and `pad 1 up a`;
 - `screenshot <path>` producing a valid PNG signature;
 - `vramdump <path>` producing a valid `KITVDMP1` signature;
+- `vram_tiles` parsing the 65,840-byte snapshot and returning a PNG tilesheet
+  containing all 2,048 VRAM tiles with all four CRAM palettes;
 - release held input and stop without an orphan BlastEM process.
 
 ## Verified GDB Remote behavior

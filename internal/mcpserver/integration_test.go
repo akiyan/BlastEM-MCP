@@ -2,7 +2,9 @@ package mcpserver
 
 import (
 	"context"
+	"encoding/json"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -34,11 +36,13 @@ func TestMCPBlastEMIntegration(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = clientSession.Close() })
 
-	callOK(t, ctx, clientSession, "blastem_start", map[string]any{
+	start := callOK(t, ctx, clientSession, "blastem_start", map[string]any{
 		"binary_path": binary, "rom_path": rom, "debug": false,
 	})
+	time.Sleep(2 * time.Second)
 	callOK(t, ctx, clientSession, "button_down", map[string]any{"pad": 1, "button": "a"})
 	callOK(t, ctx, clientSession, "button_up", map[string]any{"pad": 1, "button": "a"})
+	time.Sleep(3 * time.Second)
 	screenshot := callOK(t, ctx, clientSession, "screenshot", map[string]any{})
 	if len(screenshot.Content) != 1 {
 		t.Fatalf("screenshot content count = %d", len(screenshot.Content))
@@ -47,16 +51,57 @@ func TestMCPBlastEMIntegration(t *testing.T) {
 	if !ok || len(image.Data) < 8 || string(image.Data[:8]) != "\x89PNG\r\n\x1a\n" {
 		t.Fatalf("screenshot did not return a PNG image: %#v", screenshot.Content[0])
 	}
-	callOK(t, ctx, clientSession, "vdp_snapshot", map[string]any{})
+	snapshot := callOK(t, ctx, clientSession, "vdp_snapshot", map[string]any{})
+	tiles := callOK(t, ctx, clientSession, "vram_tiles", map[string]any{"scale": 2})
+	if len(tiles.Content) != 1 {
+		t.Fatalf("vram_tiles content count = %d", len(tiles.Content))
+	}
+	tileImage, ok := tiles.Content[0].(*mcp.ImageContent)
+	if !ok || tileImage.MIMEType != "image/png" || len(tileImage.Data) < 8 {
+		t.Fatalf("vram_tiles did not return a PNG image: %#v", tiles.Content[0])
+	}
+	showcaseDir := os.Getenv("BLASTEM_SHOWCASE_DIR")
+	if showcaseDir != "" {
+		if err := os.MkdirAll(showcaseDir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(showcaseDir, "screenshot.png"), image.Data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(showcaseDir, "vram-tiles.png"), tileImage.Data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
 	callOK(t, ctx, clientSession, "blastem_stop", map[string]any{})
 
-	callOK(t, ctx, clientSession, "blastem_start", map[string]any{
+	debugStart := callOK(t, ctx, clientSession, "blastem_start", map[string]any{
 		"binary_path": binary, "rom_path": rom, "debug": true,
 	})
-	callOK(t, ctx, clientSession, "cpu_registers", map[string]any{})
-	callOK(t, ctx, clientSession, "memory_read", map[string]any{"address": 0, "size": 8})
-	callOK(t, ctx, clientSession, "cpu_step", map[string]any{})
+	registers := callOK(t, ctx, clientSession, "cpu_registers", map[string]any{})
+	memory := callOK(t, ctx, clientSession, "memory_read", map[string]any{"address": 0, "size": 32})
+	step := callOK(t, ctx, clientSession, "cpu_step", map[string]any{})
+	registersAfterStep := callOK(t, ctx, clientSession, "cpu_registers", map[string]any{})
+	if showcaseDir != "" {
+		writeShowcaseJSON(t, filepath.Join(showcaseDir, "mcp-data.json"), map[string]any{
+			"rom": filepath.Base(rom), "start": start.StructuredContent,
+			"vdp_snapshot": snapshot.StructuredContent, "vram_tiles": tiles.StructuredContent,
+			"debug_start": debugStart.StructuredContent, "cpu_registers": registers.StructuredContent,
+			"memory_read_0x000000": memory.StructuredContent, "cpu_step": step.StructuredContent,
+			"cpu_registers_after_step": registersAfterStep.StructuredContent,
+		})
+	}
 	callOK(t, ctx, clientSession, "blastem_stop", map[string]any{})
+}
+
+func writeShowcaseJSON(t *testing.T, path string, value any) {
+	t.Helper()
+	data, err := json.MarshalIndent(value, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, append(data, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func callOK(t *testing.T, ctx context.Context, session *mcp.ClientSession, name string, arguments map[string]any) *mcp.CallToolResult {
