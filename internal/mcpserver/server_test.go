@@ -60,4 +60,26 @@ func TestAdvertisesImplementedTools(t *testing.T) {
 	if status.IsError {
 		t.Fatalf("blastem_status returned tool error: %+v", status.Content)
 	}
+
+	for _, test := range []struct {
+		name string
+		args map[string]any
+	}{
+		{"blastem_stop", map[string]any{}},
+		{"button_down", map[string]any{"pad": 1, "button": "a"}},
+		{"screenshot", map[string]any{}},
+		{"vdp_snapshot", map[string]any{}},
+		{"vram_tiles", map[string]any{}},
+		{"cpu_registers", map[string]any{}},
+		{"memory_read", map[string]any{"address": 0, "size": 1}},
+		{"breakpoint_set", map[string]any{"address": 0x200}},
+	} {
+		result, err := clientSession.CallTool(ctx, &mcp.CallToolParams{Name: test.name, Arguments: test.args})
+		if err != nil {
+			t.Fatalf("%s protocol error: %v", test.name, err)
+		}
+		if !result.IsError {
+			t.Fatalf("%s succeeded without a running session", test.name)
+		}
+	}
 }

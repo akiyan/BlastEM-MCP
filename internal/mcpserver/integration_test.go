@@ -41,6 +41,7 @@ func TestMCPBlastEMIntegration(t *testing.T) {
 	start := callOK(t, ctx, clientSession, "blastem_start", map[string]any{
 		"binary_path": binary, "rom_path": rom, "debug": false,
 	})
+	callError(t, ctx, clientSession, "cpu_registers", map[string]any{})
 	time.Sleep(2 * time.Second)
 	callOK(t, ctx, clientSession, "button_down", map[string]any{"pad": 1, "button": "a"})
 	callOK(t, ctx, clientSession, "button_up", map[string]any{"pad": 1, "button": "a"})
@@ -106,11 +107,14 @@ func TestMCPBlastEMIntegration(t *testing.T) {
 		}
 	}
 	callOK(t, ctx, clientSession, "blastem_stop", map[string]any{})
+	callError(t, ctx, clientSession, "screenshot", map[string]any{})
 
 	debugStart := callOK(t, ctx, clientSession, "blastem_start", map[string]any{
 		"binary_path": binary, "rom_path": rom, "debug": true,
 	})
 	registers := callOK(t, ctx, clientSession, "cpu_registers", map[string]any{})
+	callError(t, ctx, clientSession, "memory_read", map[string]any{"address": 0, "size": 65537})
+	callError(t, ctx, clientSession, "breakpoint_set", map[string]any{"address": 0x1000000})
 	memory := callOK(t, ctx, clientSession, "memory_read", map[string]any{"address": 0, "size": 32})
 	step := callOK(t, ctx, clientSession, "cpu_step", map[string]any{})
 	registersAfterStep := callOK(t, ctx, clientSession, "cpu_registers", map[string]any{})
@@ -145,6 +149,18 @@ func callOK(t *testing.T, ctx context.Context, session *mcp.ClientSession, name 
 	}
 	if result.IsError {
 		t.Fatalf("%s tool error: %+v", name, result.Content)
+	}
+	return result
+}
+
+func callError(t *testing.T, ctx context.Context, session *mcp.ClientSession, name string, arguments map[string]any) *mcp.CallToolResult {
+	t.Helper()
+	result, err := session.CallTool(ctx, &mcp.CallToolParams{Name: name, Arguments: arguments})
+	if err != nil {
+		t.Fatalf("%s protocol error: %v", name, err)
+	}
+	if !result.IsError {
+		t.Fatalf("%s unexpectedly succeeded", name)
 	}
 	return result
 }

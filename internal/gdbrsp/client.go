@@ -139,11 +139,17 @@ func (c *Client) WriteMemory(ctx context.Context, address uint32, data []byte) e
 }
 
 func (c *Client) SetBreakpoint(ctx context.Context, address uint32) error {
-	return c.expectOK(ctx, fmt.Sprintf("Z0,%X,2", address&0xFFFFFF))
+	if address > 0xFFFFFF {
+		return errors.New("breakpoint address must fit in 24 bits")
+	}
+	return c.expectOK(ctx, fmt.Sprintf("Z0,%X,2", address))
 }
 
 func (c *Client) RemoveBreakpoint(ctx context.Context, address uint32) error {
-	return c.expectOK(ctx, fmt.Sprintf("z0,%X,2", address&0xFFFFFF))
+	if address > 0xFFFFFF {
+		return errors.New("breakpoint address must fit in 24 bits")
+	}
+	return c.expectOK(ctx, fmt.Sprintf("z0,%X,2", address))
 }
 
 func (c *Client) Step(ctx context.Context) (Stop, error)     { return c.run(ctx, "s") }

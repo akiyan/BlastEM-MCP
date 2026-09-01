@@ -115,6 +115,23 @@ func TestCommandHonorsCancellation(t *testing.T) {
 	}
 }
 
+func TestRejectsMemoryAndBreakpointBounds(t *testing.T) {
+	client := New("127.0.0.1:1")
+	ctx := context.Background()
+	if _, err := client.ReadMemory(ctx, 0, maxMemoryCall+1); err == nil {
+		t.Fatal("ReadMemory accepted more than 64 KiB")
+	}
+	if err := client.WriteMemory(ctx, 0, make([]byte, maxMemoryCall+1)); err == nil {
+		t.Fatal("WriteMemory accepted more than 64 KiB")
+	}
+	if err := client.SetBreakpoint(ctx, 0x1000000); err == nil {
+		t.Fatal("SetBreakpoint accepted a 25-bit address")
+	}
+	if err := client.RemoveBreakpoint(ctx, 0x1000000); err == nil {
+		t.Fatal("RemoveBreakpoint accepted a 25-bit address")
+	}
+}
+
 func fakeGDBServer(t *testing.T, replies map[string]string) *Client {
 	t.Helper()
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
