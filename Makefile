@@ -1,10 +1,13 @@
-.PHONY: build test check clean
+.PHONY: build fixture test check clean
 
 TMPDIR ?= $(CURDIR)/.tmp
 
 build:
 	mkdir -p $(TMPDIR)
 	TMPDIR=$(TMPDIR) go build -o blastem-mcp ./cmd/blastem-mcp
+
+fixture:
+	$(MAKE) -C testdata/fixture check
 
 test:
 	mkdir -p $(TMPDIR)
@@ -18,3 +21,4 @@ check:
 
 clean:
 	$(RM) blastem-mcp
+	$(MAKE) -C testdata/fixture clean

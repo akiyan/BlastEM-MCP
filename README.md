@@ -71,7 +71,7 @@ docs/                  architecture, milestones, and decisions
 third_party/blastem/   pinned upstream fork (Git submodule)
 cmd/blastem-mcp/       Go MCP server entry point
 internal/              session and protocol packages
-testdata/              open integration fixtures (planned)
+testdata/fixture/      source-built open integration ROM
 ```
 
 ## Documentation
@@ -83,8 +83,8 @@ testdata/              open integration fixtures (planned)
 
 ## ROM policy
 
-No commercial ROMs are included. Automated tests will use a small,
-redistributable homebrew fixture built from source.
+No commercial ROMs are included. Automated tests use a small, redistributable
+homebrew fixture built from source in [`testdata/fixture`](testdata/fixture).
 
 ## License
 
