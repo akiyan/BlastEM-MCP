@@ -53,12 +53,16 @@ func TestMCPBlastEMIntegration(t *testing.T) {
 	}
 	snapshot := callOK(t, ctx, clientSession, "vdp_snapshot", map[string]any{})
 	tiles := callOK(t, ctx, clientSession, "vram_tiles", map[string]any{"scale": 2})
-	if len(tiles.Content) != 1 {
+	if len(tiles.Content) != 2 {
 		t.Fatalf("vram_tiles content count = %d", len(tiles.Content))
 	}
-	tileImage, ok := tiles.Content[0].(*mcp.ImageContent)
+	indexedImage, ok := tiles.Content[0].(*mcp.ImageContent)
+	if !ok || indexedImage.MIMEType != "image/png" || len(indexedImage.Data) < 8 {
+		t.Fatalf("vram_tiles did not return an indexed PNG image: %#v", tiles.Content[0])
+	}
+	tileImage, ok := tiles.Content[1].(*mcp.ImageContent)
 	if !ok || tileImage.MIMEType != "image/png" || len(tileImage.Data) < 8 {
-		t.Fatalf("vram_tiles did not return a PNG image: %#v", tiles.Content[0])
+		t.Fatalf("vram_tiles did not return a CRAM PNG image: %#v", tiles.Content[1])
 	}
 	showcaseDir := os.Getenv("BLASTEM_SHOWCASE_DIR")
 	if showcaseDir != "" {
@@ -69,6 +73,9 @@ func TestMCPBlastEMIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 		if err := os.WriteFile(filepath.Join(showcaseDir, "vram-tiles.png"), tileImage.Data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(showcaseDir, "vram-indexed.png"), indexedImage.Data, 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}

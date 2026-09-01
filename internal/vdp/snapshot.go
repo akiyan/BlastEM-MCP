@@ -114,7 +114,10 @@ func (s Snapshot) RenderTilesheet(w io.Writer, scale int) (TilesheetInfo, error)
 					if x%2 == 0 {
 						index = packed >> 4
 					}
-					c := cramColor(s.CRAM[palette*16+int(index)])
+					c := transparentChecker(tileX+x*scale, tileY+y*scale, scale)
+					if index != 0 {
+						c = cramColor(s.CRAM[palette*16+int(index)])
+					}
 					for sy := 0; sy < scale; sy++ {
 						for sx := 0; sx < scale; sx++ {
 							img.SetRGBA(tileX+x*scale+sx, tileY+y*scale+sy, c)
@@ -130,12 +133,65 @@ func (s Snapshot) RenderTilesheet(w io.Writer, scale int) (TilesheetInfo, error)
 	return TilesheetInfo{TileCount: tileCount, PaletteCount: 4, Columns: columns, Rows: rows, Scale: scale, Width: width, Height: height}, nil
 }
 
+// RenderIndexedTilesheet renders palette indices with fixed high-contrast
+// colours. It is useful when live CRAM is dark or mostly uninitialised. Index 0
+// is shown as a checkerboard because it is transparent in tile graphics.
+func (s Snapshot) RenderIndexedTilesheet(w io.Writer, scale int) (TilesheetInfo, error) {
+	if scale < 1 || scale > 8 {
+		return TilesheetInfo{}, errors.New("scale must be from 1 through 8")
+	}
+	tileCount := len(s.VRAM) / TileSize
+	if tileCount == 0 {
+		return TilesheetInfo{}, errors.New("snapshot does not contain renderable VRAM")
+	}
+	const columns = 32
+	rows := (tileCount + columns - 1) / columns
+	width := columns * 8 * scale
+	height := rows * 8 * scale
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	for tile := 0; tile < tileCount; tile++ {
+		tileX := (tile % columns) * 8 * scale
+		tileY := (tile / columns) * 8 * scale
+		base := tile * TileSize
+		for y := 0; y < 8; y++ {
+			for x := 0; x < 8; x++ {
+				packed := s.VRAM[base+y*4+x/2]
+				index := packed & 0x0f
+				if x%2 == 0 {
+					index = packed >> 4
+				}
+				c := transparentChecker(tileX+x*scale, tileY+y*scale, scale)
+				if index != 0 {
+					c = indexedColours[index]
+				}
+				for sy := 0; sy < scale; sy++ {
+					for sx := 0; sx < scale; sx++ {
+						img.SetRGBA(tileX+x*scale+sx, tileY+y*scale+sy, c)
+					}
+				}
+			}
+		}
+	}
+	if err := png.Encode(w, img); err != nil {
+		return TilesheetInfo{}, fmt.Errorf("encode indexed VRAM tilesheet: %w", err)
+	}
+	return TilesheetInfo{TileCount: tileCount, PaletteCount: 0, Columns: columns, Rows: rows, Scale: scale, Width: width, Height: height}, nil
+}
+
 func (s Snapshot) WriteTilesheet(path string, scale int) (TilesheetInfo, error) {
+	return writePNG(path, func(w io.Writer) (TilesheetInfo, error) { return s.RenderTilesheet(w, scale) })
+}
+
+func (s Snapshot) WriteIndexedTilesheet(path string, scale int) (TilesheetInfo, error) {
+	return writePNG(path, func(w io.Writer) (TilesheetInfo, error) { return s.RenderIndexedTilesheet(w, scale) })
+}
+
+func writePNG(path string, render func(io.Writer) (TilesheetInfo, error)) (TilesheetInfo, error) {
 	f, err := os.Create(path)
 	if err != nil {
 		return TilesheetInfo{}, fmt.Errorf("create VRAM tilesheet: %w", err)
 	}
-	info, renderErr := s.RenderTilesheet(f, scale)
+	info, renderErr := render(f)
 	closeErr := f.Close()
 	if renderErr != nil {
 		return TilesheetInfo{}, renderErr
@@ -144,6 +200,21 @@ func (s Snapshot) WriteTilesheet(path string, scale int) (TilesheetInfo, error) 
 		return TilesheetInfo{}, fmt.Errorf("close VRAM tilesheet: %w", closeErr)
 	}
 	return info, nil
+}
+
+var indexedColours = [16]color.RGBA{
+	{},
+	{255, 255, 255, 255}, {255, 64, 64, 255}, {64, 255, 64, 255},
+	{64, 128, 255, 255}, {255, 224, 64, 255}, {255, 64, 255, 255}, {64, 255, 255, 255},
+	{255, 144, 32, 255}, {160, 96, 255, 255}, {64, 192, 128, 255}, {255, 128, 192, 255},
+	{160, 224, 64, 255}, {96, 176, 255, 255}, {224, 224, 224, 255}, {144, 144, 144, 255},
+}
+
+func transparentChecker(x, y, scale int) color.RGBA {
+	if ((x/scale)/4+(y/scale)/4)%2 == 0 {
+		return color.RGBA{48, 48, 48, 255}
+	}
+	return color.RGBA{80, 80, 80, 255}
 }
 
 func cramColor(raw uint16) color.RGBA {

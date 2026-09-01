@@ -40,6 +40,14 @@ func TestParseAndRenderTilesheet(t *testing.T) {
 	if got := img.At(0, 0); got == nil {
 		t.Fatal("missing rendered pixel")
 	}
+	output.Reset()
+	indexedInfo, err := snapshot.RenderIndexedTilesheet(&output, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if indexedInfo.Width != 512 || indexedInfo.Height != 16 {
+		t.Fatalf("unexpected indexed tilesheet info: %+v", indexedInfo)
+	}
 }
 
 func TestParseRejectsTruncatedSnapshot(t *testing.T) {

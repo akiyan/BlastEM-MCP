@@ -30,8 +30,9 @@ Use the selected BlastEM fork without changing its wire protocols.
 
 `screenshot` returns an MCP image plus metadata. `vdp_snapshot` returns parsed
 metadata and an artifact/resource reference; raw binary data is not dumped into
-model context by default. `vram_tiles` decodes the snapshot into a PNG containing
-all 2048 8x8 tiles rendered with each of the four live CRAM palettes.
+model context by default. `vram_tiles` decodes the snapshot into a high-contrast
+indexed PNG and a PNG containing all 2048 8x8 tiles rendered with each of the
+four live CRAM palettes. Palette index zero is shown as a checkerboard.
 
 ### v0.2: deterministic automation
 
