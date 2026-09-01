@@ -1,6 +1,6 @@
 # BlastEM MCP implementation plan
 
-Status: initial project baseline (2026-09-01)
+Status: M1 v0.1 MVP complete (2026-09-01)
 
 ## 1. Outcome
 
@@ -182,6 +182,9 @@ Exit: a clean checkout identifies the exact BlastEM source revision and the
 next work is represented by actionable GitHub issues.
 
 ### M1 — v0.1 control and debug MVP
+
+Completed on 2026-09-01. The full acceptance scenario below runs in Linux CI
+against a source-built redistributable fixture ROM and the pinned BlastEM fork.
 
 1. Go MCP stdio server and typed tool schemas.
 2. Session/runtime directory manager.

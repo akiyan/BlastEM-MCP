@@ -4,9 +4,10 @@ An MCP server for controlling and debugging Sega Mega Drive/Genesis software in
 BlastEM from coding agents.
 
 > [!IMPORTANT]
-> The v0.1 implementation is in progress. Session management, controller input,
-> screenshots, VDP snapshots, and the initial 68000 GDB tools are implemented;
-> deterministic frame stepping and save/load state remain planned work.
+> The v0.1 control and debug MVP is complete. Session management, controller
+> input, screenshots, VDP snapshots, VRAM tile rendering, and 68000 GDB tools
+> are covered by automated acceptance tests. Deterministic frame stepping and
+> save/load state remain planned work for v0.2.
 
 The first implementation targets
 [`ulalume/blastem`](https://github.com/ulalume/blastem), a BlastEM fork that
