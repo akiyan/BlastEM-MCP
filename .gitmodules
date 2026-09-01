@@ -1,0 +1,3 @@
+[submodule "vendor/blastem"]
+	path = vendor/blastem
+	url = https://github.com/ulalume/blastem.git
