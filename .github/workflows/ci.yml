@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.27.x"
+          cache: true
+      - name: Check formatting
+        run: test -z "$(gofmt -l cmd internal)"
+      - name: Vet
+        run: go vet ./...
+      - name: Test with race detector
+        run: go test -race ./...
+      - name: Build
+        run: go build -o blastem-mcp ./cmd/blastem-mcp
+
+  blastem-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Install BlastEM build dependencies
+        run: sudo apt-get update && sudo apt-get install -y pkg-config libsdl2-dev libglew-dev libgl-dev
+      - name: Build pinned BlastEM fork
+        run: make -C third_party/blastem -j2 DEBUG=1
+        env:
+          TMPDIR: ${{ runner.temp }}

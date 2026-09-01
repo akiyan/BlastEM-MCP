@@ -24,7 +24,7 @@ Use the selected BlastEM fork without changing its wire protocols.
 | Session | `blastem_start`, `blastem_status`, `blastem_stop` | managed child process |
 | Input | `button_down`, `button_up`, `release_all_buttons` | Unix control socket |
 | Video/VDP | `screenshot`, `vdp_snapshot` | Unix control socket + artifact wait |
-| CPU | `cpu_registers`, `cpu_step`, `cpu_continue`, `cpu_interrupt` | GDB Remote |
+| CPU | `cpu_registers`, `cpu_step`, `cpu_continue` | GDB Remote |
 | Memory | `memory_read`, `memory_write` | GDB Remote |
 | Breakpoints | `breakpoint_set`, `breakpoint_remove` | GDB Remote |
 
@@ -41,7 +41,9 @@ Add a small, upstreamable BlastEM control-protocol extension:
 - `press <pad> <button> <frames>` or an equivalent atomic input timeline;
 - `reset`;
 - named `save_state` and `load_state`;
-- capability/version negotiation.
+- capability/version negotiation;
+- an emulator-side break/interrupt command suitable for cancelling a running
+  GDB continue operation.
 
 Then expose `step_frames`, `press_frames`, `reset`, `save_state`, and
 `load_state` as MCP tools.
@@ -136,13 +138,17 @@ claim deterministic frame timing.
 
 ### GDB Remote
 
-Implement packet checksum/acknowledgement, stop replies, Ctrl-C interrupt, and
-only these command families:
+Implement packet checksum/acknowledgement, stop replies, and only these command
+families:
 
 - `g`/`p`/`P` for registers;
 - `m`/`M` or `X` for memory;
 - `Z0`/`z0` for software breakpoints;
 - `s`, `c`, and stop-query handling.
+
+The selected fork currently ignores the raw GDB Remote Ctrl-C byte while the
+CPU is running. Therefore v0.1 `cpu_continue` must be used with a breakpoint;
+arbitrary interrupt/cancellation requires the v0.2 emulator protocol extension.
 
 All register names and byte order are covered by fixture tests. Unknown packets,
 malformed replies, timeouts, and a terminated emulator become typed MCP errors.

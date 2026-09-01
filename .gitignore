@@ -3,6 +3,7 @@ coverage/
 .env
 .DS_Store
 .blastem-mcp/
+.tmp/
 /blastem-mcp
 *.test
 *.out
