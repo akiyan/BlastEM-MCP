@@ -6,3 +6,7 @@ coverage/
 /blastem-mcp
 *.test
 *.out
+
+# Local test ROMs must never be committed.
+/roms/*
+!/roms/.gitkeep
