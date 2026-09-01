@@ -67,10 +67,13 @@ type vramTilesInput struct {
 }
 
 type vramTilesOutput struct {
-	Artifact        artifact.Info     `json:"artifact"`
-	IndexedArtifact artifact.Info     `json:"indexed_artifact"`
-	Tiles           vdp.TilesheetInfo `json:"tiles"`
-	IndexedTiles    vdp.TilesheetInfo `json:"indexed_tiles"`
+	Palettes []vramPaletteOutput `json:"palettes"`
+}
+
+type vramPaletteOutput struct {
+	Palette  int               `json:"palette"`
+	Artifact artifact.Info     `json:"artifact"`
+	Tiles    vdp.TilesheetInfo `json:"tiles"`
 }
 
 type memoryReadInput struct {
@@ -110,7 +113,7 @@ func (a *App) registerTools() {
 	mcp.AddTool(a.server, &mcp.Tool{Name: "release_all_buttons", Description: "Release every controller button held through this MCP session."}, a.releaseAll)
 	mcp.AddTool(a.server, &mcp.Tool{Name: "screenshot", Description: "Capture the next BlastEM-rendered frame as a PNG image."}, a.screenshot)
 	mcp.AddTool(a.server, &mcp.Tool{Name: "vdp_snapshot", Description: "Capture a KITVDMP1 VRAM/CRAM/VSRAM/VDP-register snapshot."}, a.vdpSnapshot)
-	mcp.AddTool(a.server, &mcp.Tool{Name: "vram_tiles", Description: "Capture VRAM and return an indexed high-contrast PNG plus a PNG showing all 2048 tiles with each of the four live CRAM palettes."}, a.vramTiles)
+	mcp.AddTool(a.server, &mcp.Tool{Name: "vram_tiles", Description: "Capture VRAM and return four PNG tilesheets, one for each live CRAM palette in palette 0 through 3 order."}, a.vramTiles)
 	mcp.AddTool(a.server, &mcp.Tool{Name: "cpu_registers", Description: "Read all 68000 data/address registers, status register, and PC while stopped."}, a.cpuRegisters)
 	mcp.AddTool(a.server, &mcp.Tool{Name: "memory_read", Description: "Read up to 64 KiB from the 68000 address space while stopped."}, a.memoryRead)
 	mcp.AddTool(a.server, &mcp.Tool{Name: "memory_write", Description: "Write hexadecimal bytes into the 68000 address space while stopped."}, a.memoryWrite)
@@ -209,8 +212,6 @@ func (a *App) vramTiles(_ context.Context, _ *mcp.CallToolRequest, in vramTilesI
 	}
 	serial := a.serial.Add(1)
 	snapshotPath := filepath.Join(runtimeDir, fmt.Sprintf("vdp-%06d.kitvdmp", serial))
-	imagePath := filepath.Join(runtimeDir, fmt.Sprintf("vram-tiles-%06d.png", serial))
-	indexedPath := filepath.Join(runtimeDir, fmt.Sprintf("vram-indexed-%06d.png", serial))
 	if err := client.VDPSnapshot(snapshotPath); err != nil {
 		return nil, vramTilesOutput{}, err
 	}
@@ -218,35 +219,26 @@ func (a *App) vramTiles(_ context.Context, _ *mcp.CallToolRequest, in vramTilesI
 	if err != nil {
 		return nil, vramTilesOutput{}, err
 	}
-	tiles, err := snapshot.WriteTilesheet(imagePath, scale)
-	if err != nil {
-		return nil, vramTilesOutput{}, err
+	output := vramTilesOutput{Palettes: make([]vramPaletteOutput, 0, 4)}
+	content := make([]mcp.Content, 0, 4)
+	for palette := 0; palette < 4; palette++ {
+		imagePath := filepath.Join(runtimeDir, fmt.Sprintf("vram-palette-%d-%06d.png", palette, serial))
+		tiles, err := snapshot.WritePaletteTilesheet(imagePath, scale, palette)
+		if err != nil {
+			return nil, vramTilesOutput{}, err
+		}
+		info, err := artifact.Inspect(imagePath)
+		if err != nil {
+			return nil, vramTilesOutput{}, err
+		}
+		data, err := os.ReadFile(imagePath)
+		if err != nil {
+			return nil, vramTilesOutput{}, err
+		}
+		output.Palettes = append(output.Palettes, vramPaletteOutput{Palette: palette, Artifact: info, Tiles: tiles})
+		content = append(content, &mcp.ImageContent{Data: data, MIMEType: "image/png"})
 	}
-	info, err := artifact.Inspect(imagePath)
-	if err != nil {
-		return nil, vramTilesOutput{}, err
-	}
-	indexedTiles, err := snapshot.WriteIndexedTilesheet(indexedPath, scale)
-	if err != nil {
-		return nil, vramTilesOutput{}, err
-	}
-	indexedInfo, err := artifact.Inspect(indexedPath)
-	if err != nil {
-		return nil, vramTilesOutput{}, err
-	}
-	indexedData, err := os.ReadFile(indexedPath)
-	if err != nil {
-		return nil, vramTilesOutput{}, err
-	}
-	data, err := os.ReadFile(imagePath)
-	if err != nil {
-		return nil, vramTilesOutput{}, err
-	}
-	result := &mcp.CallToolResult{Content: []mcp.Content{
-		&mcp.ImageContent{Data: indexedData, MIMEType: "image/png"},
-		&mcp.ImageContent{Data: data, MIMEType: "image/png"},
-	}}
-	return result, vramTilesOutput{Artifact: info, IndexedArtifact: indexedInfo, Tiles: tiles, IndexedTiles: indexedTiles}, nil
+	return &mcp.CallToolResult{Content: content}, output, nil
 }
 
 func (a *App) cpuRegisters(ctx context.Context, _ *mcp.CallToolRequest, _ emptyInput) (*mcp.CallToolResult, registersOutput, error) {

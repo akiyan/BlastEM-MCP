@@ -48,6 +48,17 @@ func TestParseAndRenderTilesheet(t *testing.T) {
 	if indexedInfo.Width != 512 || indexedInfo.Height != 16 {
 		t.Fatalf("unexpected indexed tilesheet info: %+v", indexedInfo)
 	}
+	output.Reset()
+	paletteInfo, err := snapshot.RenderPaletteTilesheet(&output, 2, 3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if paletteInfo.Width != 512 || paletteInfo.Height != 16 || paletteInfo.PaletteCount != 1 {
+		t.Fatalf("unexpected palette tilesheet info: %+v", paletteInfo)
+	}
+	if _, err := snapshot.RenderPaletteTilesheet(&output, 2, 4); err == nil {
+		t.Fatal("RenderPaletteTilesheet accepted palette 4")
+	}
 }
 
 func TestParseRejectsTruncatedSnapshot(t *testing.T) {

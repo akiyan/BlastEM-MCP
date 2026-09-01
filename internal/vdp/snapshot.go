@@ -133,6 +133,52 @@ func (s Snapshot) RenderTilesheet(w io.Writer, scale int) (TilesheetInfo, error)
 	return TilesheetInfo{TileCount: tileCount, PaletteCount: 4, Columns: columns, Rows: rows, Scale: scale, Width: width, Height: height}, nil
 }
 
+// RenderPaletteTilesheet renders all VRAM tiles with one live CRAM palette.
+func (s Snapshot) RenderPaletteTilesheet(w io.Writer, scale, palette int) (TilesheetInfo, error) {
+	if scale < 1 || scale > 8 {
+		return TilesheetInfo{}, errors.New("scale must be from 1 through 8")
+	}
+	if palette < 0 || palette > 3 {
+		return TilesheetInfo{}, errors.New("palette must be from 0 through 3")
+	}
+	tileCount := len(s.VRAM) / TileSize
+	if tileCount == 0 || len(s.CRAM) < 64 {
+		return TilesheetInfo{}, errors.New("snapshot does not contain renderable VRAM and CRAM")
+	}
+	const columns = 32
+	rows := (tileCount + columns - 1) / columns
+	width := columns * 8 * scale
+	height := rows * 8 * scale
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	for tile := 0; tile < tileCount; tile++ {
+		tileX := (tile % columns) * 8 * scale
+		tileY := (tile / columns) * 8 * scale
+		base := tile * TileSize
+		for y := 0; y < 8; y++ {
+			for x := 0; x < 8; x++ {
+				packed := s.VRAM[base+y*4+x/2]
+				index := packed & 0x0f
+				if x%2 == 0 {
+					index = packed >> 4
+				}
+				c := transparentChecker(tileX+x*scale, tileY+y*scale, scale)
+				if index != 0 {
+					c = cramColor(s.CRAM[palette*16+int(index)])
+				}
+				for sy := 0; sy < scale; sy++ {
+					for sx := 0; sx < scale; sx++ {
+						img.SetRGBA(tileX+x*scale+sx, tileY+y*scale+sy, c)
+					}
+				}
+			}
+		}
+	}
+	if err := png.Encode(w, img); err != nil {
+		return TilesheetInfo{}, fmt.Errorf("encode CRAM palette %d VRAM tilesheet: %w", palette, err)
+	}
+	return TilesheetInfo{TileCount: tileCount, PaletteCount: 1, Columns: columns, Rows: rows, Scale: scale, Width: width, Height: height}, nil
+}
+
 // RenderIndexedTilesheet renders palette indices with fixed high-contrast
 // colours. It is useful when live CRAM is dark or mostly uninitialised. Index 0
 // is shown as a checkerboard because it is transparent in tile graphics.
@@ -184,6 +230,12 @@ func (s Snapshot) WriteTilesheet(path string, scale int) (TilesheetInfo, error) 
 
 func (s Snapshot) WriteIndexedTilesheet(path string, scale int) (TilesheetInfo, error) {
 	return writePNG(path, func(w io.Writer) (TilesheetInfo, error) { return s.RenderIndexedTilesheet(w, scale) })
+}
+
+func (s Snapshot) WritePaletteTilesheet(path string, scale, palette int) (TilesheetInfo, error) {
+	return writePNG(path, func(w io.Writer) (TilesheetInfo, error) {
+		return s.RenderPaletteTilesheet(w, scale, palette)
+	})
 }
 
 func writePNG(path string, render func(io.Writer) (TilesheetInfo, error)) (TilesheetInfo, error) {

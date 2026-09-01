@@ -27,8 +27,8 @@ MCP-specific code out of the emulator.
 - Start, inspect, and stop one managed BlastEM session.
 - Press and release Mega Drive controller buttons without desktop automation.
 - Capture the current frame and a VRAM/CRAM/VSRAM/VDP-register snapshot.
-- Render all 2048 VRAM tiles as a high-contrast indexed PNG and with all four
-  live CRAM palettes; transparent pixels use a checkerboard.
+- Render all 2048 VRAM tiles as four separate PNGs, one for each live CRAM
+  palette; transparent pixels use a checkerboard.
 - Read and write 68000 memory and registers.
 - Add/remove breakpoints, continue-to-breakpoint, and single-step the 68000.
 - Run locally over MCP stdio on Linux.
