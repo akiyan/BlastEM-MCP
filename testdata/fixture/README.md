@@ -49,5 +49,11 @@ BLASTEM_FIXTURE_SYMBOLS="$PWD/testdata/fixture/build/symbols.txt" \
 go test -run TestFixtureMCPContract -v ./internal/mcpserver
 ```
 
+To run the complete v0.1 acceptance suite with an existing X display:
+
+```sh
+DISPLAY=:99 make integration-fixture
+```
+
 The fixture source and build files are licensed under the repository's MIT
 License. It contains no proprietary code, graphics, audio, or other assets.

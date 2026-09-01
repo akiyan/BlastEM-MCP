@@ -74,6 +74,13 @@ func TestFixtureMCPContract(t *testing.T) {
 	}
 
 	callOK(t, ctx, clientSession, "button_up", map[string]any{"pad": 1, "button": "a"})
+	callOK(t, ctx, clientSession, "cpu_continue", map[string]any{})
+	input = fixtureMemory(t, callOK(t, ctx, clientSession, "memory_read", map[string]any{
+		"address": 0xFF0008, "size": 2,
+	}))
+	if input[1]&0x40 != 0 {
+		t.Fatalf("fixture input state = %02X%02X, A bit remains set after release", input[0], input[1])
+	}
 	callOK(t, ctx, clientSession, "breakpoint_remove", map[string]any{"address": breakpoint})
 	callOK(t, ctx, clientSession, "blastem_stop", map[string]any{})
 }

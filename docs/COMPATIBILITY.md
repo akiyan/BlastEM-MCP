@@ -22,6 +22,8 @@ Drive ROMs. The ROM binaries remain local and are excluded by `.gitignore`.
 The repository also contains a source-built 64 KiB integration fixture under
 `testdata/fixture`. Its MCP contract test verifies the `BMCP` RAM marker,
 controller A bit, writable scratch memory, and a symbol-resolved breakpoint.
+CI builds both the fixture and pinned BlastEM fork, then runs the MCP and
+backend acceptance tests under Xvfb.
 
 - connect to `BLASTEM_CTRL_SOCK`;
 - `pad 1 down a` and `pad 1 up a`;
