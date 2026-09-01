@@ -67,7 +67,8 @@ type vramTilesInput struct {
 }
 
 type vramTilesOutput struct {
-	Palettes []vramPaletteOutput `json:"palettes"`
+	ReferenceFrame artifact.Info       `json:"reference_frame"`
+	Palettes       []vramPaletteOutput `json:"palettes"`
 }
 
 type vramPaletteOutput struct {
@@ -212,14 +213,19 @@ func (a *App) vramTiles(_ context.Context, _ *mcp.CallToolRequest, in vramTilesI
 	}
 	serial := a.serial.Add(1)
 	snapshotPath := filepath.Join(runtimeDir, fmt.Sprintf("vdp-%06d.kitvdmp", serial))
-	if err := client.VDPSnapshot(snapshotPath); err != nil {
+	referencePath := filepath.Join(runtimeDir, fmt.Sprintf("vram-reference-%06d.png", serial))
+	if err := client.VideoState(referencePath, snapshotPath); err != nil {
+		return nil, vramTilesOutput{}, err
+	}
+	referenceInfo, err := artifact.Inspect(referencePath)
+	if err != nil {
 		return nil, vramTilesOutput{}, err
 	}
 	snapshot, err := vdp.Read(snapshotPath)
 	if err != nil {
 		return nil, vramTilesOutput{}, err
 	}
-	output := vramTilesOutput{Palettes: make([]vramPaletteOutput, 0, 4)}
+	output := vramTilesOutput{ReferenceFrame: referenceInfo, Palettes: make([]vramPaletteOutput, 0, 4)}
 	content := make([]mcp.Content, 0, 4)
 	for palette := 0; palette < 4; palette++ {
 		imagePath := filepath.Join(runtimeDir, fmt.Sprintf("vram-palette-%d-%06d.png", palette, serial))

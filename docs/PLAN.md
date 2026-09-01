@@ -32,7 +32,8 @@ Use the selected BlastEM fork without changing its wire protocols.
 metadata and an artifact/resource reference; raw binary data is not dumped into
 model context by default. `vram_tiles` decodes the snapshot into four separate
 PNGs containing all 2048 8x8 tiles, one for each live CRAM palette. Palette
-index zero is shown as a checkerboard.
+index zero is shown as a checkerboard. The reference screenshot and VDP dump
+are armed together so palette animations and fades cannot mix adjacent frames.
 
 ### v0.2: deterministic automation
 

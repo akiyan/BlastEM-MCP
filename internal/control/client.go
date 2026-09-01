@@ -110,6 +110,35 @@ func (c *Client) VDPSnapshot(path string) error {
 	})
 }
 
+// VideoState arms a screenshot and VDP snapshot back-to-back so BlastEM
+// fulfills both at the next frame boundary instead of observing two frames of
+// a palette animation or fade.
+func (c *Client) VideoState(screenshotPath, snapshotPath string) error {
+	for _, path := range []string{screenshotPath, snapshotPath} {
+		if err := prepareArtifactPath(path); err != nil {
+			return err
+		}
+	}
+	c.mu.Lock()
+	err := c.sendLocked("screenshot " + screenshotPath)
+	if err == nil {
+		err = c.sendLocked("vramdump " + snapshotPath)
+	}
+	c.mu.Unlock()
+	if err != nil {
+		return err
+	}
+	deadline := time.Now().Add(c.timeout)
+	if err := awaitArtifact(screenshotPath, "screenshot", deadline, func(data []byte) bool {
+		return len(data) >= 8 && string(data[:8]) == "\x89PNG\r\n\x1a\n"
+	}); err != nil {
+		return err
+	}
+	return awaitArtifact(snapshotPath, "vramdump", deadline, func(data []byte) bool {
+		return len(data) >= 8 && string(data[:8]) == "KITVDMP1"
+	})
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -122,13 +151,9 @@ func (c *Client) Close() error {
 }
 
 func (c *Client) requestArtifact(command, path string, valid func([]byte) bool) error {
-	if !filepath.IsAbs(path) {
-		return errors.New("artifact path must be absolute")
+	if err := prepareArtifactPath(path); err != nil {
+		return err
 	}
-	if strings.ContainsAny(path, "\r\n") {
-		return errors.New("artifact path contains a newline")
-	}
-	_ = os.Remove(path)
 	c.mu.Lock()
 	err := c.sendLocked(command + " " + path)
 	c.mu.Unlock()
@@ -136,7 +161,21 @@ func (c *Client) requestArtifact(command, path string, valid func([]byte) bool) 
 		return err
 	}
 
-	deadline := time.Now().Add(c.timeout)
+	return awaitArtifact(path, command, time.Now().Add(c.timeout), valid)
+}
+
+func prepareArtifactPath(path string) error {
+	if !filepath.IsAbs(path) {
+		return errors.New("artifact path must be absolute")
+	}
+	if strings.ContainsAny(path, "\r\n") {
+		return errors.New("artifact path contains a newline")
+	}
+	_ = os.Remove(path)
+	return nil
+}
+
+func awaitArtifact(path, command string, deadline time.Time, valid func([]byte) bool) error {
 	for time.Now().Before(deadline) {
 		data, readErr := os.ReadFile(path)
 		if readErr == nil && valid(data) {
@@ -147,7 +186,7 @@ func (c *Client) requestArtifact(command, path string, valid func([]byte) bool) 
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	return fmt.Errorf("timed out after %s waiting for %s artifact", c.timeout, command)
+	return fmt.Errorf("timed out waiting for %s artifact", command)
 }
 
 func (c *Client) sendLocked(command string) error {

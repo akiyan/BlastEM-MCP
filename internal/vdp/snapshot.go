@@ -270,9 +270,11 @@ func transparentChecker(x, y, scale int) color.RGBA {
 }
 
 func cramColor(raw uint16) color.RGBA {
-	r := uint8((raw >> 1) & 7)
-	g := uint8((raw >> 5) & 7)
-	b := uint8((raw >> 9) & 7)
-	// Expand 3-bit channels to the full PNG byte range.
-	return color.RGBA{R: r * 255 / 7, G: g * 255 / 7, B: b * 255 / 7, A: 255}
+	// Match BlastEM's normal-brightness Mega Drive DAC lookup table rather
+	// than using a linear 3-bit expansion.
+	levels := [...]uint8{0, 49, 87, 119, 146, 174, 206, 255}
+	r := levels[(raw>>1)&7]
+	g := levels[(raw>>5)&7]
+	b := levels[(raw>>9)&7]
+	return color.RGBA{R: r, G: g, B: b, A: 255}
 }

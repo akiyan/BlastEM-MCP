@@ -67,6 +67,28 @@ func TestArtifactCommands(t *testing.T) {
 	}
 }
 
+func TestVideoStateArmsBothArtifacts(t *testing.T) {
+	client, commands := fakeControlServer(t, func(line string) {
+		parts := strings.SplitN(line, " ", 2)
+		if len(parts) != 2 {
+			return
+		}
+		data := []byte("KITVDMP1fixture")
+		if strings.HasPrefix(line, "screenshot ") {
+			data = []byte("\x89PNG\r\n\x1a\nfixture")
+		}
+		_ = os.WriteFile(parts[1], data, 0o600)
+	})
+	dir := t.TempDir()
+	if err := client.VideoState(filepath.Join(dir, "frame.png"), filepath.Join(dir, "vdp.kitvdmp")); err != nil {
+		t.Fatal(err)
+	}
+	first, second := <-commands, <-commands
+	if !strings.HasPrefix(first, "screenshot ") || !strings.HasPrefix(second, "vramdump ") {
+		t.Fatalf("commands = %q, %q", first, second)
+	}
+}
+
 func TestRejectsInvalidInput(t *testing.T) {
 	client := New(filepath.Join(t.TempDir(), "missing.sock"))
 	tests := []struct {

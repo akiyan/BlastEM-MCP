@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"testing"
 	"time"
 
@@ -78,6 +79,30 @@ func TestMCPBlastEMIntegration(t *testing.T) {
 			if err := os.WriteFile(filepath.Join(showcaseDir, name), paletteImage.Data, 0o644); err != nil {
 				t.Fatal(err)
 			}
+		}
+		references, err := filepath.Glob(filepath.Join(app.session.Status().RuntimeDir, "vram-reference-*.png"))
+		if err != nil || len(references) == 0 {
+			t.Fatalf("find showcase reference frame: %v", err)
+		}
+		sort.Strings(references)
+		referenceFrame, err := os.ReadFile(references[len(references)-1])
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(showcaseDir, "vram-reference.png"), referenceFrame, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		snapshots, err := filepath.Glob(filepath.Join(app.session.Status().RuntimeDir, "vdp-*.kitvdmp"))
+		if err != nil || len(snapshots) == 0 {
+			t.Fatalf("find showcase VDP snapshot: %v", err)
+		}
+		sort.Strings(snapshots)
+		rawSnapshot, err := os.ReadFile(snapshots[len(snapshots)-1])
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(showcaseDir, "vdp.kitvdmp"), rawSnapshot, 0o644); err != nil {
+			t.Fatal(err)
 		}
 	}
 	callOK(t, ctx, clientSession, "blastem_stop", map[string]any{})
