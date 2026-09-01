@@ -76,6 +76,7 @@ testdata/fixture/      source-built open integration ROM
 
 ## Documentation
 
+- [Linux setup and MCP host configuration](docs/SETUP.md)
 - [Implementation plan](docs/PLAN.md)
 - [Pinned-backend compatibility evidence](docs/COMPATIBILITY.md)
 - [ADR 0001: use the ulalume BlastEM fork](docs/adr/0001-use-ulalume-blastem.md)
